@@ -1,0 +1,19 @@
+# Runtime state
+var/
+*.log
+*.pid
+
+# Local configuration and secrets
+.env
+config.env
+*.local.env
+
+# Dependencies and coverage
+node_modules/
+coverage/
+
+# Editor and operating-system files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

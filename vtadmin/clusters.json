@@ -1,0 +1,17 @@
+{
+  "bind": "127.0.0.1:14200",
+  "origins": [
+    "http://localhost:14201",
+    "http://127.0.0.1:14201"
+  ],
+  "binary": "/opt/vitess/current/bin/vtadmin",
+  "rbacConfig": "rbac-readonly.yaml",
+  "clusters": [
+    {
+      "id": "local",
+      "name": "Local Vitess",
+      "discoveryFile": "discovery-local.json",
+      "tabletFqdnTemplate": "http://{{ .Tablet.Hostname }}:15{{ .Tablet.Alias.Uid }}"
+    }
+  ]
+}

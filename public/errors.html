@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="VtAtlas가 확인한 오류와 점검 정보를 모아 보여 주는 로컬 페이지"
+    />
+    <title>오류 정보 · VtAtlas</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="error-page-body">
+    <div class="error-page-shell">
+      <header class="topbar error-topbar">
+        <a class="brand" href="/" aria-label="VtAtlas 홈">
+          <span class="brand-mark">VT</span>
+          <span>
+            <strong>VtAtlas</strong>
+            <small>ERROR CENTER · READ ONLY</small>
+          </span>
+        </a>
+
+        <div class="cluster-state" aria-live="polite">
+          <span id="error-live-dot" class="live-dot"></span>
+          <span>
+            <strong id="error-cluster-status">오류 정보 수집 중</strong>
+            <small id="error-last-collected">실제 환경에 연결하고 있습니다</small>
+          </span>
+        </div>
+
+        <div class="header-actions">
+          <a
+            class="vtadmin-link"
+            href="http://localhost:14201"
+            target="_blank"
+            rel="noreferrer"
+          >
+            VTAdmin 멀티 클러스터 ↗
+          </a>
+          <a class="server-page-link" href="/servers.html">서버 관리</a>
+          <a class="error-back-link" href="/">← 관계도로 돌아가기</a>
+          <button id="error-refresh" class="primary-button" type="button">
+            <span class="button-icon">↻</span>
+            지금 갱신
+          </button>
+        </div>
+      </header>
+
+      <main class="errors-main">
+        <section class="errors-hero">
+          <div>
+            <p class="eyebrow">ERROR &amp; DIAGNOSTICS</p>
+            <h1>오류 및 점검 정보</h1>
+            <p>
+              현재 수집된 오류를 유형별로 분리해 보여 줍니다. 이 페이지는 상태를
+              읽기만 하며 Vitess 구성을 변경하지 않습니다.
+            </p>
+          </div>
+          <div class="error-summary-grid" aria-label="오류 요약">
+            <article>
+              <strong id="total-error-count">—</strong>
+              <span>전체 오류</span>
+            </article>
+            <article>
+              <strong id="workflow-error-count">—</strong>
+              <span>Workflow</span>
+            </article>
+            <article>
+              <strong id="source-error-count">—</strong>
+              <span>수집 소스</span>
+            </article>
+            <article>
+              <strong id="validation-error-count">—</strong>
+              <span>그래프 검증</span>
+            </article>
+          </div>
+        </section>
+
+        <section id="error-status-banner" class="error-status-banner loading">
+          최신 상태를 확인하고 있습니다.
+        </section>
+
+        <section class="error-list-section">
+          <div class="error-list-heading">
+            <div>
+              <p class="eyebrow">CURRENT FINDINGS</p>
+              <h2>확인된 오류</h2>
+            </div>
+            <span id="error-refresh-note">15초마다 자동 갱신</span>
+          </div>
+          <div id="error-list" class="error-list" aria-live="polite">
+            <div class="error-loading">오류 정보를 불러오는 중…</div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="error-raw-dialog" class="raw-dialog">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">RAW SOURCE</p>
+          <h2 id="error-raw-title">원본 데이터</h2>
+        </div>
+        <button id="error-close-raw" type="button" aria-label="원본 데이터 닫기">×</button>
+      </div>
+      <pre id="error-raw-content"></pre>
+    </dialog>
+
+    <script type="module" src="/errors.js"></script>
+  </body>
+</html>
