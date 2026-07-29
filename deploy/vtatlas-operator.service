@@ -1,0 +1,34 @@
+[Unit]
+Description=VtAtlas Operator API (local DBA approval and audit boundary)
+Documentation=https://github.com/ohjinsol77/VtAtlas
+After=network-online.target vtatlas-vtadmin-operator.service
+Wants=network-online.target vtatlas-vtadmin-operator.service
+
+[Service]
+Type=simple
+User=vitess
+Group=vitess
+WorkingDirectory=/opt/vtatlas
+EnvironmentFile=-/etc/vtatlas/vtatlas.env
+Environment=VTO_HOST=127.0.0.1
+Environment=VTO_PORT=17890
+Environment=VTO_VTADMIN_API=http://127.0.0.1:14202
+Environment=VTO_AUDIT_FILE=/opt/vtatlas/var/operator-audit.jsonl
+Environment=VTO_AUTH_MODE=deferred
+ExecStart=/usr/bin/node /opt/vtatlas/operator/server.mjs
+Restart=on-failure
+RestartSec=2
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=/opt/vtatlas/var
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

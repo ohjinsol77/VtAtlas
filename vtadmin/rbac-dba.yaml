@@ -1,0 +1,57 @@
+rules:
+  - resource: "*"
+    actions: ["get", "ping"]
+    subjects: ["*"]
+    clusters: ["*"]
+
+  - resource: "Cluster"
+    actions: ["put"]
+    subjects: ["*"]
+    clusters: ["*"]
+
+  - resource: "Keyspace"
+    actions: ["create", "delete", "put"]
+    subjects: ["*"]
+    clusters: ["*"]
+
+  - resource: "Shard"
+    actions:
+      - "create"
+      - "delete"
+      - "put"
+      - "emergency_failover_shard"
+      - "planned_failover_shard"
+      - "tablet_externally_promoted"
+    subjects: ["*"]
+    clusters: ["*"]
+
+  - resource: "Tablet"
+    actions:
+      - "delete"
+      - "put"
+      - "refresh_tablet_replication_source"
+      - "manage_tablet_writability"
+      - "manage_tablet_replication"
+    subjects: ["*"]
+    clusters: ["*"]
+
+  - resource: "Schema"
+    actions: ["reload"]
+    subjects: ["*"]
+    clusters: ["*"]
+
+  - resource: "SchemaMigration"
+    actions:
+      - "create"
+      - "cancel"
+      - "cleanup_schema_migration"
+      - "complete_schema_migration"
+      - "launch_schema_migration"
+      - "retry"
+    subjects: ["*"]
+    clusters: ["*"]
+
+  - resource: "Workflow"
+    actions: ["create", "delete", "put", "complete"]
+    subjects: ["*"]
+    clusters: ["*"]
