@@ -1,5 +1,7 @@
 # VtAtlas
 
+[English](README.md) | [한국어](README_KR.md)
+
 VtAtlas is a read-only topology explorer for running
 [Vitess](https://vitess.io/) environments. It collects the topology that
 Vitess actually reports and renders logical, physical, request-path, and
