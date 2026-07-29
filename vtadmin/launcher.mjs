@@ -9,7 +9,7 @@ import { readRegistry } from "../lib/server-registry.mjs";
 
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
 const defaultConfigPath = path.join(moduleDir, "clusters.json");
-const LOOPBACK_HOSTS = new Set(["127.0.0.1", "::1", "localhost"]);
+const LOOPBACK_HOSTS = new Set(["127.0.0.1", "::1", "[::1]", "localhost"]);
 const ID_RE = /^[A-Za-z0-9_.:-]{1,128}$/;
 
 function requiredString(value, label) {
@@ -47,10 +47,10 @@ function resolveConfigFile(configDir, value, label) {
 }
 
 function hostIpv4() {
-  const override = process.env.VTA_HOST_IP;
+  const override = process.env.VTA_HOST_IP ?? process.env.VTA_WSL_IP;
   if (override) {
     if (net.isIP(override) !== 4) {
-      throw new Error("VTA_HOST_IP must be an IPv4 address");
+      throw new Error("VTA_HOST_IP (or legacy VTA_WSL_IP) must be an IPv4 address");
     }
     return override;
   }
@@ -68,10 +68,10 @@ function hostIpv4() {
 }
 
 async function writeRuntimeDiscovery(source, clusterId) {
-  const expanded = JSON.stringify(source, null, 2).replaceAll(
-    "{{HOST_IP}}",
-    hostIpv4(),
-  );
+  const address = hostIpv4();
+  const expanded = JSON.stringify(source, null, 2)
+    .replaceAll("{{HOST_IP}}", address)
+    .replaceAll("{{WSL_IP}}", address);
   const runtimeDir =
     process.env.VTA_RUNTIME_DIR ??
     path.join(os.tmpdir(), "vitess-vtadmin-discovery");
@@ -83,7 +83,9 @@ async function writeRuntimeDiscovery(source, clusterId) {
 
 async function materializeDiscovery(sourceFile, clusterId) {
   const source = await readFile(sourceFile, "utf8");
-  if (!source.includes("{{HOST_IP}}")) return sourceFile;
+  if (!source.includes("{{HOST_IP}}") && !source.includes("{{WSL_IP}}")) {
+    return sourceFile;
+  }
   return writeRuntimeDiscovery(JSON.parse(source), clusterId);
 }
 
@@ -144,7 +146,11 @@ export async function buildLaunch(
     localOrigin(value, `origins[${index}]`),
   );
   if (!origins.length) throw new Error("at least one localhost origin is required");
-  const rbacConfig = resolveConfigFile(configDir, config.rbacConfig, "rbacConfig");
+  const rbacConfig = resolveConfigFile(
+    configDir,
+    process.env.VTA_RBAC_CONFIG ?? config.rbacConfig,
+    "rbacConfig",
+  );
   const managed = managedConfigPath
     ? await readRegistry(path.resolve(managedConfigPath))
     : { clusters: [] };

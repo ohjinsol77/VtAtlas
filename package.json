@@ -6,8 +6,9 @@
   "description": "Read-only multi-cluster topology explorer for Vitess",
   "scripts": {
     "start": "node server.mjs",
+    "start:operator": "node operator/server.mjs",
     "test": "node --test",
-    "check": "node --check server.mjs && node --check lib/collector.mjs && node --check lib/server-registry.mjs && node --check public/app.js && node --check public/errors.js && node --check public/servers.js && node --check vtadmin/launcher.mjs && node --check vtadmin/web-server.mjs"
+    "check": "node --check server.mjs && node --check operator/server.mjs && node --check operator/auth.mjs && node --check lib/collector.mjs && node --check lib/server-registry.mjs && node --check lib/vtadmin-client.mjs && node --check lib/vtadmin-operations.mjs && node --check public/app.js && node --check public/admin.js && node --check public/errors.js && node --check public/servers.js && node --check scripts/live-operator-probe.mjs && node --check vtadmin/launcher.mjs && node --check vtadmin/web-server.mjs"
   },
   "engines": {
     "node": ">=20"

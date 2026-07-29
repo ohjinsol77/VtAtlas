@@ -9,6 +9,16 @@ import {
   readRegistry,
   writeRegistry,
 } from "./lib/server-registry.mjs";
+import {
+  buildOperationRequest,
+  getOperation,
+  publicOperation,
+  READ_OPERATIONS,
+} from "./lib/vtadmin-operations.mjs";
+import {
+  loopbackBaseUrl,
+  vtadminRequest,
+} from "./lib/vtadmin-client.mjs";
 
 const appDir = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(appDir, "public");
@@ -23,7 +33,18 @@ const refreshIntervalMs = Math.max(
 );
 const appConfig = defaultConfig();
 const collector = new TopologyCollector(appConfig);
-const LOOPBACK_HOSTS = new Set(["127.0.0.1", "::1", "localhost"]);
+const LOOPBACK_HOSTS = new Set(["127.0.0.1", "::1", "[::1]", "localhost"]);
+const operatorApi = process.env.VTV_OPERATOR_API
+  ? loopbackBaseUrl(process.env.VTV_OPERATOR_API, "VtAtlas Operator API")
+  : "";
+const OPERATOR_PATHS = new Set([
+  "/health",
+  "/catalog",
+  "/session",
+  "/prepare",
+  "/execute",
+  "/audit",
+]);
 
 let latest = null;
 let collecting = null;
@@ -76,6 +97,135 @@ async function requestJson(request) {
     return JSON.parse(Buffer.concat(chunks).toString("utf8"));
   } catch {
     throw new Error("invalid JSON body");
+  }
+}
+
+function assertLocalOrigin(request) {
+  if (!request.headers.origin) return;
+  const origin = new URL(request.headers.origin);
+  if (!LOOPBACK_HOSTS.has(origin.hostname)) {
+    const error = new Error("cross-origin administration is forbidden");
+    error.status = 403;
+    throw error;
+  }
+}
+
+async function readAdminOperation(request) {
+  assertLocalOrigin(request);
+  if (
+    request.headers["content-type"]?.split(";")[0].trim() !==
+      "application/json" ||
+    request.headers["x-vtatlas-admin-intent"] !== "read-vtadmin"
+  ) {
+    const error = new Error("VTAdmin read intent header is required");
+    error.status = 400;
+    throw error;
+  }
+  if (!appConfig.vtadminApiUrl) {
+    const error = new Error("read-only VTAdmin API is not configured");
+    error.status = 503;
+    throw error;
+  }
+  const body = await requestJson(request);
+  const item = getOperation(body.operationId, "viewer");
+  const result = await vtadminRequest(
+    appConfig.vtadminApiUrl,
+    buildOperationRequest(item, body),
+  );
+  return {
+    status: result.ok ? 200 : 502,
+    body: {
+      ok: result.ok,
+      operation: publicOperation(item),
+      upstreamStatus: result.status,
+      result: result.body,
+    },
+  };
+}
+
+async function proxyOperator(request, pathname) {
+  assertLocalOrigin(request);
+  if (!operatorApi) {
+    const error = new Error("VtAtlas Operator API is not configured");
+    error.status = 503;
+    throw error;
+  }
+  const suffix = pathname.slice("/api/operator".length) || "/";
+  if (!OPERATOR_PATHS.has(suffix)) {
+    const error = new Error("operator endpoint is not allowed");
+    error.status = 404;
+    throw error;
+  }
+  const allowedMethods = {
+    "/health": ["GET"],
+    "/catalog": ["GET"],
+    "/session": ["GET", "POST", "DELETE"],
+    "/prepare": ["POST"],
+    "/execute": ["POST"],
+    "/audit": ["GET"],
+  };
+  if (!allowedMethods[suffix].includes(request.method ?? "")) {
+    const error = new Error("method not allowed");
+    error.status = 405;
+    throw error;
+  }
+  const chunks = [];
+  let length = 0;
+  for await (const chunk of request) {
+    length += chunk.length;
+    if (length > 256 * 1024) {
+      const error = new Error("operator proxy request is too large");
+      error.status = 413;
+      throw error;
+    }
+    chunks.push(chunk);
+  }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 130_000);
+  timer.unref?.();
+  try {
+    const upstream = await fetch(new URL(suffix, operatorApi), {
+      method: request.method,
+      headers: {
+        Accept: "application/json",
+        ...(request.headers["content-type"]
+          ? { "Content-Type": request.headers["content-type"] }
+          : {}),
+        ...(request.headers["x-vtatlas-dba-intent"]
+          ? {
+              "X-VtAtlas-DBA-Intent":
+                request.headers["x-vtatlas-dba-intent"],
+            }
+          : {}),
+        ...(request.headers.cookie ? { Cookie: request.headers.cookie } : {}),
+        "X-VtAtlas-Origin-IP": request.socket.remoteAddress ?? "",
+      },
+      body: chunks.length ? Buffer.concat(chunks) : undefined,
+      redirect: "error",
+      signal: controller.signal,
+    });
+    const payload = Buffer.from(await upstream.arrayBuffer());
+    if (payload.length > 16 * 1024 * 1024) {
+      const error = new Error("operator response is too large");
+      error.status = 502;
+      throw error;
+    }
+    return {
+      status: upstream.status,
+      headers: upstream.headers.get("set-cookie")
+        ? { "Set-Cookie": upstream.headers.get("set-cookie") }
+        : {},
+      payload,
+    };
+  } catch (error) {
+    if (error.name === "AbortError") {
+      const timeoutError = new Error("operator request timed out");
+      timeoutError.status = 504;
+      throw timeoutError;
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -240,6 +390,32 @@ const server = http.createServer(async (request, response) => {
       json(response, 200, await serverRegistryResponse());
       return;
     }
+    if (url.pathname === "/api/admin/catalog" && request.method === "GET") {
+      json(response, 200, {
+        ok: true,
+        role: "viewer",
+        operatorConfigured: Boolean(operatorApi),
+        operations: READ_OPERATIONS.map(publicOperation),
+      });
+      return;
+    }
+    if (url.pathname === "/api/admin/read" && request.method === "POST") {
+      const result = await readAdminOperation(request);
+      json(response, result.status, result.body);
+      return;
+    }
+    if (url.pathname.startsWith("/api/operator")) {
+      const result = await proxyOperator(request, url.pathname);
+      response.writeHead(result.status, {
+        "Content-Type": "application/json; charset=utf-8",
+        "Content-Length": result.payload.length,
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
+        ...result.headers,
+      });
+      response.end(result.payload);
+      return;
+    }
     if (
       (url.pathname === "/api/servers" && request.method === "POST") ||
       (url.pathname.startsWith("/api/servers/") &&
@@ -271,6 +447,9 @@ const server = http.createServer(async (request, response) => {
       json(response, 200, {
         topologyReadOnly: true,
         serverRegistryWritable: true,
+        vtadminViewerEnabled: Boolean(appConfig.vtadminApiUrl),
+        operatorApiEnabled: Boolean(operatorApi),
+        operatorAuthenticationImplemented: false,
         bind: host,
         refreshIntervalMs,
         vtctldAddress: latest?.environment?.vtctldAddress,
