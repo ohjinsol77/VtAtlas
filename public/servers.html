@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="VtAtlas의 다중 서버 모니터링 대상을 등록하고 관리하는 로컬 페이지"
+    />
+    <title>서버 관리 · VtAtlas</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="server-page-body">
+    <div class="server-page-shell">
+      <header class="topbar error-topbar">
+        <a class="brand" href="/" aria-label="VtAtlas 홈">
+          <span class="brand-mark">VT</span>
+          <span>
+            <strong>VtAtlas</strong>
+            <small>SERVER REGISTRY · LOCALHOST</small>
+          </span>
+        </a>
+        <div class="cluster-state" aria-live="polite">
+          <span id="server-live-dot" class="live-dot"></span>
+          <span>
+            <strong id="server-page-status">등록 정보 확인 중</strong>
+            <small>원격 Vitess는 조회만 하며 구성은 변경하지 않습니다</small>
+          </span>
+        </div>
+        <div class="header-actions">
+          <a class="vtadmin-link" href="http://localhost:14201" target="_blank" rel="noreferrer">
+            VTAdmin 멀티 클러스터 ↗
+          </a>
+          <a class="error-back-link" href="/">← 관계도로 돌아가기</a>
+        </div>
+      </header>
+
+      <main class="servers-main">
+        <section class="servers-hero">
+          <div>
+            <p class="eyebrow">MULTI-SERVER REGISTRY</p>
+            <h1>Vitess 서버 관리</h1>
+            <p>
+              Cluster별 vtctld·VTGate endpoint를 등록하면 VTAdmin이 자동으로
+              다시 연결하고 관계도에 새 Cluster를 합칩니다.
+            </p>
+          </div>
+          <button id="new-server" class="primary-button" type="button">＋ 서버 등록</button>
+        </section>
+
+        <section id="registry-notice" class="registry-notice" role="status">
+          이 페이지가 저장하는 것은 모니터링 대상 주소뿐입니다. Reparent, VSchema,
+          Workflow, MySQL 데이터는 변경하지 않습니다.
+        </section>
+
+        <section class="server-list-section">
+          <div class="server-section-heading">
+            <div>
+              <p class="eyebrow">REGISTERED CLUSTERS</p>
+              <h2>등록된 Cluster</h2>
+            </div>
+            <span id="server-count">—</span>
+          </div>
+          <div id="server-list" class="server-card-grid" aria-live="polite"></div>
+        </section>
+
+        <section id="server-editor" class="server-editor hidden">
+          <div class="server-section-heading">
+            <div>
+              <p class="eyebrow">MONITORING TARGET</p>
+              <h2 id="editor-title">새 서버 등록</h2>
+            </div>
+            <button id="close-editor" class="text-button" type="button">닫기</button>
+          </div>
+          <form id="server-form">
+            <div class="server-form-grid">
+              <label>
+                <span>Cluster ID</span>
+                <input id="server-id" required maxlength="128" placeholder="example-prod" />
+                <small>영문·숫자·점·밑줄·콜론·하이픈</small>
+              </label>
+              <label>
+                <span>표시명</span>
+                <input id="server-name" required maxlength="160" placeholder="Example Production" />
+              </label>
+              <label>
+                <span>vtctld HTTP 주소</span>
+                <textarea id="vtctld-http" required rows="2" placeholder="server-a:15000"></textarea>
+                <small>여러 대면 한 줄에 하나씩 입력</small>
+              </label>
+              <label>
+                <span>vtctld gRPC 주소</span>
+                <textarea id="vtctld-grpc" required rows="2" placeholder="server-a:15999"></textarea>
+                <small>HTTP 주소와 같은 줄 순서로 입력</small>
+              </label>
+              <label>
+                <span>VTGate HTTP 주소</span>
+                <textarea id="vtgate-http" required rows="2" placeholder="server-a:15001"></textarea>
+              </label>
+              <label>
+                <span>VTGate gRPC 주소</span>
+                <textarea id="vtgate-grpc" required rows="2" placeholder="server-a:15991"></textarea>
+              </label>
+              <label class="wide-field">
+                <span>Tablet URL 템플릿</span>
+                <input
+                  id="tablet-template"
+                  required
+                  value="http://{{ .Tablet.Hostname }}:15{{ .Tablet.Alias.Uid }}"
+                />
+                <small>Tablet HTTP 포트 규칙이 다르면 이 값만 조정</small>
+              </label>
+              <label class="server-enabled">
+                <input id="server-enabled" type="checkbox" checked />
+                <span>이 Cluster 수집 활성화</span>
+              </label>
+            </div>
+            <div id="form-message" class="form-message" role="status"></div>
+            <div class="server-form-actions">
+              <button id="cancel-editor" class="secondary-button" type="button">취소</button>
+              <button class="primary-button" type="submit">저장하고 연결</button>
+            </div>
+          </form>
+        </section>
+      </main>
+    </div>
+    <script type="module" src="/servers.js"></script>
+  </body>
+</html>

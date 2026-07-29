@@ -1,0 +1,28 @@
+[Unit]
+Description=VTAdmin Web for VtAtlas (read-only)
+Documentation=https://github.com/ohjinsol77/VtAtlas
+After=network-online.target vtatlas-vtadmin-api.service
+Wants=network-online.target vtatlas-vtadmin-api.service
+
+[Service]
+Type=simple
+User=vitess
+Group=vitess
+WorkingDirectory=/opt/vtatlas
+EnvironmentFile=-/etc/vtatlas/vtatlas.env
+ExecStart=/usr/bin/node /opt/vtatlas/vtadmin/web-server.mjs
+Restart=on-failure
+RestartSec=2
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=full
+ProtectHome=read-only
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

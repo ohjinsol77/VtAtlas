@@ -1,0 +1,29 @@
+[Unit]
+Description=VtAtlas read-only Vitess topology explorer
+Documentation=https://github.com/ohjinsol77/VtAtlas
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=vitess
+Group=vitess
+WorkingDirectory=/opt/vtatlas
+EnvironmentFile=-/etc/vtatlas/vtatlas.env
+ExecStart=/usr/bin/node /opt/vtatlas/server.mjs
+Restart=on-failure
+RestartSec=2
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=/opt/vtatlas/var
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,15 @@
+{
+  "name": "vtatlas",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Read-only multi-cluster topology explorer for Vitess",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test",
+    "check": "node --check server.mjs && node --check lib/collector.mjs && node --check lib/server-registry.mjs && node --check public/app.js && node --check public/errors.js && node --check public/servers.js && node --check vtadmin/launcher.mjs && node --check vtadmin/web-server.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

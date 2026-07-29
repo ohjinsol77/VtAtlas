@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "clusters": [
+    {
+      "id": "remote-example",
+      "name": "Remote Vitess",
+      "enabled": false,
+      "tabletFqdnTemplate": "http://{{ .Tablet.Hostname }}:15{{ .Tablet.Alias.Uid }}",
+      "discovery": {
+        "vtctlds": [
+          {
+            "host": {
+              "fqdn": "vitess-control.example.net:15000",
+              "hostname": "vitess-control.example.net:15999"
+            }
+          }
+        ],
+        "vtgates": [
+          {
+            "host": {
+              "fqdn": "vitess-gateway.example.net:15001",
+              "hostname": "vitess-gateway.example.net:15991"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
